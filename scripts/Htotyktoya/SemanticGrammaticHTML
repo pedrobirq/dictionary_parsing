@@ -1,0 +1,65 @@
+import re
+from bs4 import BeautifulSoup
+
+uploaded = files.upload()
+file_path = list(uploaded.keys())[0]
+
+with open(file_path, "r", encoding="utf-8") as f:
+    html = f.read()
+
+soup = BeautifulSoup(html, "html.parser")
+
+paragraphs = [p.get_text(" ", strip=True) for p in soup.find_all("p")]
+
+
+SOURCE_PATTERN = r"[А-ЯЁA-Z][А-ЯЁа-яёA-Za-z\. ]*\d+\.?"
+
+
+def split_examples(text):
+    return re.split(r"\s*\|\|\s*", text)
+
+
+def extract_sources(text):
+    return re.findall(SOURCE_PATTERN, text)
+
+
+def remove_sources(text):
+    return re.sub(SOURCE_PATTERN, "", text).strip()
+
+
+def process_paragraph(paragraph):
+    results = []
+
+    parts = split_examples(paragraph)
+
+    for part in parts:
+        sources = extract_sources(part)
+
+        if not sources:
+            continue
+
+        quote = remove_sources(part)
+
+        if len(quote) < 15:
+            continue
+
+        results.append({
+            "quote": quote,
+            "sources": sources
+        })
+
+    return results
+
+
+all_results = []
+
+for p in paragraphs:
+    results = process_paragraph(p)
+    all_results.extend(results)
+
+
+for r in all_results[:20]:
+    print("ЦИТАТА:")
+    print(r["quote"])
+    print("ИСТОЧНИКИ:")
+    print(", ".join(r["sources"]))

@@ -1,0 +1,83 @@
+import re
+from bs4 import BeautifulSoup
+
+uploaded = files.upload()
+
+# Список грамматических и стилистических помет
+LABELS = [
+    "прост.", "разг.", "книжн.", "книжн.-слав.", "устар.",
+    "высок.", "ирон.", "шутл.", "пренебр.", "диал.",
+    "церк.", "поэт.", "офиц.", "союз", "частица", "межд.",
+    "нареч.", "вопр.", "ср.", "глаг.", "сущ.", "прил.",
+    "сов.", "несов.", "род.", "падеж", "ед.", "мн."
+]
+
+def extract_marks_from_html(html_content):
+    soup = BeautifulSoup(html_content, "html.parser")
+    marks = []
+
+
+    for tag in soup.find_all(['span', 'i', 'em', 'font', 'small']):
+        text = tag.get_text(strip=True)
+        if not text:
+            continue
+
+        for label in LABELS:
+            if label.lower() in text.lower() or text.lower() == label.lower():
+
+                word_title = ""
+                title_tag = soup.find('h1')
+                if not title_tag:
+                    title_tag = soup.find('title')
+                if title_tag:
+                    word_title = title_tag.get_text(strip=True)[:50]
+
+                parent = tag.find_parent(['p', 'div', 'li'])
+                context = parent.get_text(strip=True)[:150] if parent else text
+
+                marks.append({
+                    'word': word_title,
+                    'mark': label,
+                    'context': context
+                })
+                break
+
+    if not marks:
+        plain_text = soup.get_text(separator=" ")
+        for label in LABELS:
+            pattern = r'([^\.\n]*?\b' + re.escape(label) + r'\b[^\.\n]*\.)'
+            matches = re.findall(pattern, plain_text, re.IGNORECASE)
+            for match in matches[:3]:
+                title_tag = soup.find('h1')
+                word_title = title_tag.get_text(strip=True)[:50] if title_tag else "Неизвестно"
+                marks.append({
+                    'word': word_title,
+                    'mark': label,
+                    'context': match.strip()[:150]
+                })
+
+    return marks
+
+for filename, content in uploaded.items():
+    if filename.endswith('.html'):
+        print(f"\n{'='*60}")
+        print(f"Файл: {filename}")
+        print('='*60)
+
+        try:
+            html_str = content.decode('utf-8')
+        except:
+            try:
+                html_str = content.decode('cp1251')
+            except:
+                html_str = str(content)
+
+        marks = extract_marks_from_html(html_str)
+
+        if marks:
+            for m in marks:
+                print(f"\nСлово: {m['word']}")
+                print(f"Помета: {m['mark']}")
+                print(f"Контекст: {m['context']}")
+        else:
+            print("Пометы не найдены")
