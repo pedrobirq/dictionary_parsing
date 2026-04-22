@@ -1,5 +1,4 @@
 import re
-import json
 import os
 
 
@@ -30,23 +29,20 @@ def find_etymologies(article_body: str):
 
 def go_through_articles(dir: str):
     """
-    Проход по папке с отпарсенными словарными статьями в json-формате
+    Проход по папке с отпарсенными словарными статьями в html-формате
     """
     articles = os.listdir(dir)
     
     for article in articles:
-        if article[-4:] == 'json':
+        if article[-4:] == 'html':
             
             with open(os.path.join(dir, article), encoding='utf-8') as file:
-                json_file = json.load(file)
-            
-            article_body = json_file['rest']
-            article_head = json_file['headline']
+                article_body = file.read()
 
             etymology = find_etymologies(article_body)
 
             print('-'*30)
-            print(article_head)
+            print(article)
             print(etymology)
 
 
@@ -58,6 +54,6 @@ article_example = """<p> <hi rendition="simple:bold">БЕТЕЛЬ</hi> 1766, 
 1783 237. <hi rendition="simple:bold">Бетелев,</hi> а, о. Индѣйцы жуют
 листы Бетелевы. Сл. комм. I 177.</p>"""
 
-print(find_etymologies(article_example))
+# print(find_etymologies(article_example))
 
-# go_through_articles('data\samples_json')
+go_through_articles('data\samples_html')
